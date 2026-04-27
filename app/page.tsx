@@ -72,16 +72,46 @@ function ProductBagSVG({ color, lightColor, icon, name }: { color: string; light
 export default function Home() {
   const [form, setForm] = useState({ name: '', phone: '', email: '', product: '', qty: '', message: '' });
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [prodHovered, setProdHovered] = useState<number | null>(null);
   const [whyHovered, setWhyHovered] = useState<number | null>(null);
   const [certHovered, setCertHovered] = useState<number | null>(null);
 
-  const handleSubmit = () => {
+  // ✅ SUPABASE CONNECTED - sends form data to API route
+  const handleSubmit = async () => {
     if (!form.name || !form.phone || !form.product) {
       alert('Please fill in Name, Phone, and Product.');
       return;
     }
-    setSubmitted(true);
+
+    setLoading(true);
+
+    try {
+      const response = await fetch('/api/enquiry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: form.name,
+          phone: form.phone,
+          email: form.email,
+          product: form.product,
+          quantity: form.qty,
+          message: form.message,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setSubmitted(true);
+      } else {
+        alert('Something went wrong. Please try again.');
+      }
+    } catch (error) {
+      alert('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -151,6 +181,7 @@ export default function Home() {
         .trust-statement { text-align: center; padding: 2rem; background: linear-gradient(135deg, #1a3a0a, #2d5a14); border-radius: 12px; color: #fff; }
         .trust-statement p { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; font-weight: 600; margin-bottom: 0.3rem; }
         .trust-statement span { font-size: 0.85rem; opacity: 0.7; font-weight: 300; }
+        .submit-btn:disabled { opacity: 0.7; cursor: not-allowed; }
         @media (max-width: 600px) {
           .prod-grid { grid-template-columns: 1fr 1fr; gap: 1rem; }
           .prod-strip { grid-template-columns: 1fr 1fr; }
@@ -321,7 +352,9 @@ export default function Home() {
                 <textarea placeholder="Tell us about your use case, delivery location, or any special requirements..." value={form.message} onChange={e => setForm({ ...form, message: e.target.value })} />
               </div>
               {!submitted ? (
-                <button className="submit-btn" onClick={handleSubmit}>Submit Enquiry</button>
+                <button className="submit-btn" onClick={handleSubmit} disabled={loading}>
+                  {loading ? 'Submitting...' : 'Submit Enquiry'}
+                </button>
               ) : (
                 <div className="success">✓ Thank you! We will call or email you within 24 hours with a quote.</div>
               )}
